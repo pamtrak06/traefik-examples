@@ -1,0 +1,21 @@
+[Global]
+
+[ServersTransport]
+InsecureSkipVerify = true
+
+defaultEntryPoints = ["http"]
+
+
+[entryPoints]
+  [entryPoints.http]
+    address = ":80"
+      [entryPoints.http.redirect]
+        entryPoint = "https"
+
+[Providers]
+  [Providers.Docker]
+    Endpoint = "unix:///var/run/docker.sock"
+    Domain = "docker.localhost"
+    Watch = true
+    ExposedByDefault = false
+

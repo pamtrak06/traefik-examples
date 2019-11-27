@@ -1,0 +1,53 @@
+version: '3.7'
+
+services:
+  traefik:
+    image: traefik:2.1
+    container_name: "traefik"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.insecure=true"                       # Traefik will listen on port 8080 by default for API request.
+      - "--providers.docker=true"                   # Enabling docker provider
+      - "--providers.docker.exposedbydefault=false" # Do not expose containers unless explicitly told so
+      - "--entrypoints.web.address=:80"             # Traefik will listen to incoming request on the port 80 (HTTP)
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - "net-traefik"
+
+  whoami:
+    image: "containous/whoami"
+    container_name: "simple-service"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`portal`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
+      - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/simple-service"
+    networks:
+      - "net-traefik"
+
+  jhipster-registry:  
+    image: jhipster/jhipster-registry:v5.0.2
+    container_name: "jhipster-registry"
+    ports:
+      - "8761"
+    labels:
+      - "traefik.enable=true"                                            # Explicitly tell Traefik to expose this container
+      - "traefik.http.routers.jhipster-registry.rule=Host(`portal`)"  #  The domain the service will respond to
+      - "traefik.http.routers.jhipster-registry.entrypoints=web"         # Allow request only from the predefined entry point named "web"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
+      - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/jhipster-registry"
+    networks:
+      - "net-traefik"
+
+networks:
+  net-traefik:
+    external: true
+    driver: bridge
+
