@@ -23,6 +23,7 @@ services:
       - "--providers.docker=true"                   # Enabling docker provider
       - "--providers.docker.exposedbydefault=false" # Do not expose containers unless explicitly told so
       - "--entrypoints.web.address=:80"             # Traefik will listen to incoming request on the port 80 (HTTP)
+      - "--entrypoints.jhipster-registry.address=:8761" 
       - "--metrics.influxdb=true"                   # To enable the InfluxDB
       - "--metrics.influxdb.address=influxdb:8089"  # Address instructs exporter to send metrics to influxdb at this address
       - "--metrics.influxdb.protocol=udp"           # InfluxDB's address protocol (udp or http)
@@ -93,18 +94,18 @@ services:
     volumes:
       - data-grafana:/var/lib/grafana
 
-  #whoami:
-  #  image: "containous/whoami"
-  #  container_name: "simple-service"
-  #  labels:
-  #    - "traefik.enable=true"
-  #    - "traefik.http.routers.whoami.rule=Host(`portal`)"
-  #    - "traefik.http.routers.whoami.entrypoints=web"
-  #    - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
-  #    - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
-  #    - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/simple-service"
-  #  networks:
-  #    - "net-traefik"
+  whoami:
+    image: "containous/whoami"
+    container_name: "simple-service"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`portal`) && PathPrefix(`/simple-service`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
+      - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/simple-service"
+    networks:
+      - "net-traefik"
 
   jhipster-registry:  
     image: jhipster/jhipster-registry:v5.0.2
@@ -113,14 +114,15 @@ services:
       - "8761:8761"
     labels:
       - "traefik.enable=true"                                            # Explicitly tell Traefik to expose this container
-      - "traefik.http.routers.jhipster-registry.rule=Host(`portal`)"  #  The domain the service will respond to
-      - "traefik.http.routers.jhipster-registry.entrypoints=web"         # Allow request only from the predefined entry point named "web"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
-      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^(http:\\/\\/[^:]+(:\\d+)?)/$"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
-      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=${1}/portal/"
-      #- "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/jhipster-registry/"
-      - "traefik.http.middlewares.add-jhipster-registry.stripPrefix.prefixes=/jhipster-registry/,/jhipster-registry"
+      - "traefik.http.routers.jhipster-registry.rule=Host(`portal`) && PathPrefix(`/jhipster-registry/`)"  #  The domain the service will respond to
+      - "traefik.http.routers.jhipster-registry.entrypoints=jhipster-registry"         # Allow request only from the predefined entry point named "jhipster-registry"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost:8761/(.*)"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal:8761/$${1}"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^(http:\/\/[^:]+(:\\d+)?)/$ "
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=${1}/portal/jhipster-registry/"
+      - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/jhipster-registry/"
+      #- "traefik.http.middlewares.jhipster-registry-stripPrefix.stripprefix.prefixes=/jhipster-registry"
+      #- "traefik.http.routers.jhipster-registry.middlewares=jhipster-registry-stripprefix@docker"
     networks:
       - "net-traefik"
 
