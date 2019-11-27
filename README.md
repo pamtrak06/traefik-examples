@@ -1,5 +1,9 @@
 # traefik-jhipster-example
 
+## Description
+
+docker-compose example of traefik usage with a simple service and a jhipster application (jhipster registry)
+
 ## Configuration
 
 ```bash
