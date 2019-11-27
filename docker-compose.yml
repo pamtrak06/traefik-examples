@@ -1,15 +1,38 @@
 version: '3.7'
 
+volumes:
+  data-influxdb:
+  data-grafana:
+  data-chronograf:
+  data-telegraf:
+
+networks:
+  net-traefik:
+    external: true
+    driver: bridge
+
 services:
   traefik:
     image: traefik:2.1
     container_name: "traefik"
     command:
       - "--log.level=DEBUG"
+      - "--log.filePath=/path/to/traefik.log"       # Writing Logs to a File
+      - "--log.format=json"                         # Writing Logs to a File, in JSON
       - "--api.insecure=true"                       # Traefik will listen on port 8080 by default for API request.
       - "--providers.docker=true"                   # Enabling docker provider
       - "--providers.docker.exposedbydefault=false" # Do not expose containers unless explicitly told so
       - "--entrypoints.web.address=:80"             # Traefik will listen to incoming request on the port 80 (HTTP)
+      - "--metrics.influxdb=true"                   # To enable the InfluxDB
+      - "--metrics.influxdb.address=influxdb:8089"  # Address instructs exporter to send metrics to influxdb at this address
+      - "--metrics.influxdb.protocol=udp"           # InfluxDB's address protocol (udp or http)
+      - "--metrics.influxdb.database=traefik"       # InfluxDB database used when protocol is http
+      - "--metrics.influxdb.retentionPolicy=two_hours" # InfluxDB retention policy used when protocol is http
+      - "--metrics.influxdb.username=influx"        # InfluxDB username (only with http)
+      - "--metrics.influxdb.password=influx"        # InfluxDB password (only with http)
+      - "--metrics.influxdb.addEntryPointsLabels=true" # Enable metrics on entry points
+      - "--metrics.influxdb.addServicesLabels=true" # Enable metrics on services
+      - "--metrics.influxdb.pushInterval=10s"       # The interval used by the exporter to push metrics to influxdb
     ports:
       - "80:80"
       - "8080:8080"
@@ -18,36 +41,87 @@ services:
     networks:
       - "net-traefik"
 
-  whoami:
-    image: "containous/whoami"
-    container_name: "simple-service"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.whoami.rule=Host(`portal`)"
-      - "traefik.http.routers.whoami.entrypoints=web"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
-      - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/simple-service"
-    networks:
-      - "net-traefik"
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    environment:
+      - "INFLUXDB_DB=traefik"
+      - "INFLUXDB_ADMIN_ENABLED=true"
+      - "INFLUXDB_ADMIN_USER=admin"
+      - "INFLUXDB_ADMIN_PASSWORD=admin"
+      - "INFLUXDB_USER=traefik"
+      - "INFLUXDB_USER_PASSWORD=influx"
+    volumes:
+      - data-influxdb:/var/lib/influxdb
+    ports:
+      - "8083:8083"
+      - "8086:8086"
+      - "8090:8090"
+
+  telegraf:
+    image: telegraf:latest
+    container_name: telegraf
+    links:
+      - influxdb
+    volumes:
+      - data-telegraf:/etc/telegraf/:ro
+
+  chronograf:
+    image: chronograf:latest
+    ports:
+      - '8888:8888'
+    volumes:
+      - data-chronograf:/var/lib/chronograf
+    depends_on:
+      - influxdb
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_USERNAME=admin
+      - INFLUXDB_PASSWORD=admin
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - "GF_INSTALL_PLUGINS=grafana-clock-panel,briangann-gauge-panel,natel-plotly-panel,grafana-simple-json-datasource"
+      - "GF_SECURITY_ADMIN_USER=admin"
+      - "GF_SECURITY_ADMIN_PASSWORD=admin"
+    depends_on:
+      - influxdb
+    volumes:
+      - data-grafana:/var/lib/grafana
+
+  #whoami:
+  #  image: "containous/whoami"
+  #  container_name: "simple-service"
+  #  labels:
+  #    - "traefik.enable=true"
+  #    - "traefik.http.routers.whoami.rule=Host(`portal`)"
+  #    - "traefik.http.routers.whoami.entrypoints=web"
+  #    - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+  #    - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
+  #    - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/simple-service"
+  #  networks:
+  #    - "net-traefik"
 
   jhipster-registry:  
     image: jhipster/jhipster-registry:v5.0.2
     container_name: "jhipster-registry"
     ports:
-      - "8761"
+      - "8761:8761"
     labels:
       - "traefik.enable=true"                                            # Explicitly tell Traefik to expose this container
       - "traefik.http.routers.jhipster-registry.rule=Host(`portal`)"  #  The domain the service will respond to
       - "traefik.http.routers.jhipster-registry.entrypoints=web"         # Allow request only from the predefined entry point named "web"
-      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
-      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
-      - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/jhipster-registry"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^(http:\\/\\/[^:]+(:\\d+)?)/$"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=${1}/portal/"
+      #- "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/jhipster-registry/"
+      - "traefik.http.middlewares.add-jhipster-registry.stripPrefix.prefixes=/jhipster-registry/,/jhipster-registry"
     networks:
       - "net-traefik"
 
-networks:
-  net-traefik:
-    external: true
-    driver: bridge
 
