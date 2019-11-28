@@ -101,9 +101,9 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.whoami.rule=Host(`portal`) && PathPrefix(`/simple-service`)"
       - "traefik.http.routers.whoami.entrypoints=web"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
-      - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/simple-service"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost/(.*)"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/$${1}"
+      #- "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/simple-service"
     networks:
       - "net-traefik"
 
@@ -115,12 +115,14 @@ services:
     labels:
       - "traefik.enable=true"                                            # Explicitly tell Traefik to expose this container
       - "traefik.http.routers.jhipster-registry.rule=Host(`portal`) && PathPrefix(`/jhipster-registry/`)"  #  The domain the service will respond to
-      - "traefik.http.routers.jhipster-registry.entrypoints=jhipster-registry"         # Allow request only from the predefined entry point named "jhipster-registry"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost:8761/(.*)"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal:8761/$${1}"
+      - "traefik.http.routers.jhipster-registry.entrypoints=web"         # Allow request only from the predefined entry point named "jhipster-registry"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=/(.*)"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/jhipster-registry/$${1}"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost:8761/(.*)"
+      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal:8761/$${1}"
       #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^(http:\/\/[^:]+(:\\d+)?)/$ "
       #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=${1}/portal/jhipster-registry/"
-      - "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/jhipster-registry/"
+      #- "traefik.http.middlewares.add-jhipster-registry.addprefix.prefix=/jhipster-registry/"
       #- "traefik.http.middlewares.jhipster-registry-stripPrefix.stripprefix.prefixes=/jhipster-registry"
       #- "traefik.http.routers.jhipster-registry.middlewares=jhipster-registry-stripprefix@docker"
     networks:
