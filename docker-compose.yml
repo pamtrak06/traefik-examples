@@ -10,20 +10,23 @@ networks:
   net-traefik:
     external: true
     driver: bridge
+  internal-network:
+    internal: true
 
 services:
   traefik:
     image: traefik:2.1
     container_name: "traefik"
     command:
+      - "--log=true"
       - "--log.level=DEBUG"
-      - "--log.filePath=/path/to/traefik.log"       # Writing Logs to a File
-      - "--log.format=json"                         # Writing Logs to a File, in JSON
+      #- "--log.filePath=traefik.log"                # Writing Logs to a File
+      #- "--log.format=json"                         # Writing Logs to a File, in JSON
       - "--api.insecure=true"                       # Traefik will listen on port 8080 by default for API request.
       - "--providers.docker=true"                   # Enabling docker provider
       - "--providers.docker.exposedbydefault=false" # Do not expose containers unless explicitly told so
       - "--entrypoints.web.address=:80"             # Traefik will listen to incoming request on the port 80 (HTTP)
-      - "--entrypoints.jhipster-registry.address=:8761" 
+      #- "--entrypoints.jhipster-registry.address=:8761" 
       - "--metrics.influxdb=true"                   # To enable the InfluxDB
       - "--metrics.influxdb.address=influxdb:8089"  # Address instructs exporter to send metrics to influxdb at this address
       - "--metrics.influxdb.protocol=udp"           # InfluxDB's address protocol (udp or http)
@@ -41,6 +44,7 @@ services:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
     networks:
       - "net-traefik"
+      - "internal-network"
 
   influxdb:
     image: influxdb:latest
@@ -113,11 +117,13 @@ services:
     ports:
       - "8761:8761"
     labels:
-      - "traefik.enable=true"                                            # Explicitly tell Traefik to expose this container
-      - "traefik.http.routers.jhipster-registry.rule=Host(`portal`) && PathPrefix(`/jhipster-registry/`)"  #  The domain the service will respond to
-      - "traefik.http.routers.jhipster-registry.entrypoints=web"         # Allow request only from the predefined entry point named "jhipster-registry"
-      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=/(.*)"
-      #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/jhipster-registry/$${1}"
+      - "traefik.enable=true"                                                    # Explicitly tell Traefik to expose this container
+      #- "traefik.http.routers.jhipster-registry.rule=Host(`portal`) && PathPrefix(`/jhipster-registry/`)"  #  The domain the service will respond to
+      - "traefik.http.routers.jhipster-registry.rule=Host(`jhipster-registry`)"  #  The domain the service will respond to
+      - "traefik.http.routers.jhipster-registry.entrypoints=web"                 # Allow request only from the predefined entry point named "jhipster-registry"
+      - "traefik.http.services.jhipster-registry.loadbalancer.server.port=8761"  # Tell Traefik to use the port 8761 to connect to `jhipster-registry`
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=/(.*)"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal/jhipster-registry/$${1}"
       #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^http://localhost:8761/(.*)"
       #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://portal:8761/$${1}"
       #- "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=^(http:\/\/[^:]+(:\\d+)?)/$ "
@@ -126,6 +132,7 @@ services:
       #- "traefik.http.middlewares.jhipster-registry-stripPrefix.stripprefix.prefixes=/jhipster-registry"
       #- "traefik.http.routers.jhipster-registry.middlewares=jhipster-registry-stripprefix@docker"
     networks:
-      - "net-traefik"
-
-
+      net-traefik:
+      internal-network:
+        aliases:
+          - jhipster-registry
