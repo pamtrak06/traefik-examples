@@ -71,9 +71,9 @@ services:
           - influxdb.jhipster-portal
     labels:
       - "traefik.enable=true"
-      - "traefik.frontend.rule=Host(`influxdb.jhipster-portal`)"
-      - "traefik.port=8086"
-      - "traefik.docker.network=web"
+      - "traefik.http.routers.influxdb.rule=Host(`influxdb.jhipster-portal`)"
+      - "traefik.http.routers.influxdb.entrypoints=web"
+      - "traefik.http.services.influxdb.loadbalancer.server.port=8086"
 
   telegraf:
     image: telegraf:latest
@@ -87,10 +87,6 @@ services:
       internal-network:
         aliases:
           - telegraf.jhipster-portal
-    labels:
-      - "traefik.enable=true"
-      - "traefik.frontend.rule=Host(`telegraf.jhipster-portal`)"
-      - "traefik.docker.network=web"
 
   chronograf:
     image: chronograf:latest
@@ -112,9 +108,9 @@ services:
           - chronograf.jhipster-portal
     labels:
       - "traefik.enable=true"
-      - "traefik.frontend.rule=Host(`chronograf.jhipster-portal`)"
-      - "traefik.port=8888"
-      - "traefik.docker.network=web"
+      - "traefik.http.routers.chronograf.rule=Host(`chronograf.jhipster-portal`)"
+      - "traefik.http.routers.chronograf.entrypoints=web"
+      - "traefik.http.services.chronograf.loadbalancer.server.port=8888"
 
   grafana:
     image: grafana/grafana:latest
@@ -136,39 +132,7 @@ services:
           - grafana.jhipster-portal
     labels:
       - "traefik.enable=true"
-      - "traefik.frontend.rule=Host(`grafana.jhipster-portal`)"
-      - "traefik.port=3000"
-      - "traefik.docker.network=web"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.jhipster-portal`)"
+      - "traefik.http.routers.grafana.entrypoints=web"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
-  whoami:
-    image: "containous/whoami"
-    container_name: "simple-service"
-    labels:
-      - "traefik.enable=true"
-      #- "traefik.http.routers.whoami.rule=Host(`simple-service.jhipster-portal`) && PathPrefix(`/simple-service`)"
-      - "traefik.http.routers.whoami.rule=Host(`simple-service.jhipster-portal`)"
-      - "traefik.http.routers.whoami.entrypoints=web"
-    networks:
-      net-traefik:
-      internal-network:
-        aliases:
-          - simple-service.jhipster-portal
-
-  jhipster-registry:  
-    image: jhipster/jhipster-registry:v5.0.2
-    container_name: "jhipster-registry"
-    ports:
-      - "8761:8761"
-    labels:
-      - "traefik.enable=true"                                                           # Explicitly tell Traefik to expose this container
-      #- "traefik.http.routers.jhipster-registry.rule=Host(`portal`) && PathPrefix(`/jhipster-registry/`)"  #  The domain the service will respond to
-      - "traefik.http.routers.jhipster-registry.rule=Host(`registry.jhipster-portal`)"  #  The domain the service will respond to
-      - "traefik.http.routers.jhipster-registry.entrypoints=web"                        # Allow request only from the predefined entry point named "jhipster-registry"
-      - "traefik.http.services.jhipster-registry.loadbalancer.server.port=8761"         # Tell Traefik to use the port 8761 to connect to `jhipster-registry`
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=/(.*)"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://registry.jhipster-portal/jhipster-registry/$${1}"
-    networks:
-      net-traefik:
-      internal-network:
-        aliases:
-          - registry.jhipster-portal

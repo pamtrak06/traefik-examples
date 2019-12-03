@@ -2,11 +2,7 @@
 
 ## Description
 
-docker-compose examples of traefik configuration and usage:
-- [simple-service]: simple http service
-- [https]: simple https service
-- [jhipster]: routing wih jhipster microservice stack
-- [monitoring/influxdb]: monitoring traefik with influxdb/chronograf/telegraf/grafana
+docker-compose example of traefik usage with a simple service and a jhipster application (jhipster registry)
 
 ## Configuration
 
@@ -30,10 +26,22 @@ dcs up -d
 ## Monitoring
 
 ```bash
-dcs logs -f
+dcs logs -f traefik
+dcs logs -f simple-service
+dcs logs -f jhipster-registry
 ```
 
 Traefik:
 - http://jhipster-portal:8080/dashboard/
 - http://jhipster-portal:8080/api/rawdata
+
+- http://localhost:3000 # grafana
+
+## Check app
+
+- http://jhipster-portal/simple-service
+- http://localhost:80  # simple-service
+
+- http://jhipster-portal
+- http://localhost:8761 # jhipster-registry
 

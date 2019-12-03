@@ -1,0 +1,48 @@
+version: '3.7'
+
+networks:
+  net-traefik:
+    external: true
+    driver: bridge
+  internal-network:
+    internal: true
+
+services:
+  traefik:
+    image: traefik:2.1
+    container_name: "traefik"
+    command:
+      - "--log=true"
+      - "--log.level=DEBUG"
+      #- "--log.filePath=traefik.log"                  # Writing Logs to a File
+      #- "--log.format=json"                           # Writing Logs to a File, in JSON
+      - "--api.insecure=true"                          # Traefik will listen on port 8080 by default for API request.
+      - "--providers.docker=true"                      # Enabling docker provider
+      - "--providers.docker.exposedbydefault=false"    # Do not expose containers unless explicitly told so
+      - "--entrypoints.web.address=:80"                # Traefik will listen to incoming request on the port 80 (HTTP)
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - "net-traefik"
+      - "internal-network"
+
+  jhipster-registry:  
+    image: jhipster/jhipster-registry:v5.0.2
+    container_name: "jhipster-registry"
+    ports:
+      - "8761:8761"
+    labels:
+      - "traefik.enable=true"                                                           # Explicitly tell Traefik to expose this container
+      - "traefik.http.routers.jhipster-registry.rule=Host(`registry.jhipster-portal`)"  #  The domain the service will respond to
+      - "traefik.http.routers.jhipster-registry.entrypoints=web"                        # Allow request only from the predefined entry point named "jhipster-registry"
+      - "traefik.http.services.jhipster-registry.loadbalancer.server.port=8761"         # Tell Traefik to use the port 8761 to connect to `jhipster-registry`
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=/(.*)"
+      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://registry.jhipster-portal/jhipster-registry/$${1}"
+    networks:
+      net-traefik:
+      internal-network:
+        aliases:
+          - registry.jhipster-portal

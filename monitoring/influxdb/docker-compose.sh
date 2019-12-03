@@ -3,7 +3,7 @@
 if [  -z "$(docker network ls|grep net-traefik)" ]; then
   docker network create net-traefik 
 fi
-docker-compose $@
+docker-compose -f traefik-influxdb $@
 sleep 5
 docker exec grafana mkdir -p /etc/grafana/provisioning/dashboards
 docker exec grafana mkdir -p /etc/grafana/provisioning/datasources
