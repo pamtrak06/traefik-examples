@@ -1,0 +1,44 @@
+version: '3.7'
+
+networks:
+  net-traefik:
+    external: true
+    driver: bridge
+  internal-network:
+    internal: true
+
+services:
+  traefik:
+    image: traefik:2.1
+    container_name: "traefik"
+    command:
+      - "--log=true"
+      - "--log.level=DEBUG"
+      #- "--log.filePath=traefik.log"                  # Writing Logs to a File
+      #- "--log.format=json"                           # Writing Logs to a File, in JSON
+      - "--api.insecure=true"                          # Traefik will listen on port 8080 by default for API request.
+      - "--providers.docker=true"                      # Enabling docker provider
+      - "--providers.docker.exposedbydefault=false"    # Do not expose containers unless explicitly told so
+      - "--entrypoints.web.address=:443"               # Traefik will listen to incoming request on the port 443 (HTTPS)
+    ports:
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - "net-traefik"
+      - "internal-network"
+
+  whoami:
+    image: "containous/whoami"
+    container_name: "simple-service"
+    labels:
+      - "traefik.enable=true"
+      #- "traefik.http.routers.whoami.rule=Host(`simple-service.jhipster-portal`) && PathPrefix(`/simple-service`)"
+      - "traefik.http.routers.whoami.rule=Host(`simple-service.jhipster-portal`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+    networks:
+      net-traefik:
+      internal-network:
+        aliases:
+          - simple-service.jhipster-portal
