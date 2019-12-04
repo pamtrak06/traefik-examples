@@ -1,0 +1,27 @@
+version: '3.7'
+
+networks:
+  net-traefik:
+    external: true
+    driver: bridge
+
+services:
+  traefik:
+    image: traefik:2.0
+    container_name: "traefik"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    volumes:
+      - "$PWD/volumes/config:/etc/traefik/"
+    networks:
+      net-traefik:
+
+  # https://github.com/containous/whoami
+  whoami:
+    image: "containous/whoami"
+    container_name: "simple-service"
+    ports:
+      - "8000:80"
+    networks:
+      net-traefik:

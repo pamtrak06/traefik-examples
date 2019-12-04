@@ -1,0 +1,15 @@
+[Global]
+checkNewVersion = true
+
+[log]
+  level = "DEBUG"
+
+[entrypoints]
+    [entrypoints.web]
+      address = ":80"
+
+[providers]
+  [providers.file]
+    filename = "/etc/traefik/dynamic_conf.toml"
+    watch = true
+    debugLogGeneratedTemplate = true

@@ -1,0 +1,19 @@
+[global]
+  checkNewVersion = false
+  sendAnonymousUsage = false
+
+[http]
+   [http.routers]
+      [http.routers.whoami]
+         entrypoints = ["web"]
+         service = "whoami"
+         rule = "Host(`localhost`) && PathPrefix(`/api`)"
+         priority = 42
+
+  [http.services]
+     [http.services.whoami]
+        [http.services.whoami.loadbalancer]
+           #passHostHeader = true
+           [[http.services.whoami.loadbalancer.servers]]
+              url = "http://whoami:80/api"
+              
