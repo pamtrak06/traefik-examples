@@ -16,4 +16,3 @@
            #passHostHeader = true
            [[http.services.whoami.loadbalancer.servers]]
               url = "http://whoami:80/api"
-              
