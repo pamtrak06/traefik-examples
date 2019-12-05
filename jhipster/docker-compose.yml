@@ -36,13 +36,59 @@ services:
       - "8761:8761"
     labels:
       - "traefik.enable=true"                                                           # Explicitly tell Traefik to expose this container
-      - "traefik.http.routers.jhipster-registry.rule=Host(`registry.jhipster-portal`)"  #  The domain the service will respond to
+
+      # Routers
+      #- "traefik.http.routers.jhipster-registry.rule=Host(`registry.jhipster-portal`) && PathPrefix(`/registry`)"  #  The domain the service will respond to
+      #- "traefik.http.routers.jhipster-registry.rule=Host(`registry.jhipster-portal`)"  #  The domain the service will respond to
+      #- "traefik.http.routers.jhipster-registry.rule=Host(`jhipster-portal`) && PathPrefix(`/registry`)"  #  The domain the service will respond to
+      - "traefik.http.routers.jhipster-registry.rule=Host(`jhipster-portal`)"  #  The domain the service will respond to
       - "traefik.http.routers.jhipster-registry.entrypoints=web"                        # Allow request only from the predefined entry point named "jhipster-registry"
+      #- "traefik.http.routers.jhipster-registry.middlewares=stripprefix,redirect,redirect-app,redirect-content"
+      - "traefik.http.routers.whoami.priority=2"
+
+      # Services
       - "traefik.http.services.jhipster-registry.loadbalancer.server.port=8761"         # Tell Traefik to use the port 8761 to connect to `jhipster-registry`
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.regex=/(.*)"
-      - "traefik.http.middlewares.jhipster-registry-redirectregex.redirectregex.replacement=http://registry.jhipster-portal/jhipster-registry/$${1}"
+
+      # Middlewares
+      - "traefik.http.middlewares.stripprefix.stripprefix.prefixes=/registry,/registry/"
+
+      - "traefik.http.middlewares.redirect.redirectregex.regex=^http://registry.jhipster-portal/(.*)"
+      - "traefik.http.middlewares.redirect.redirectregex.replacement=http://registry.jhipster-portal/$${1}"
+      - "traefik.http.middlewares.redirect.redirectregex.permanent=true"
+
+      - "traefik.http.middlewares.redirect-app.redirectregex.regex=^http://registry.jhipster-portal/registry/app/(.*)"
+      - "traefik.http.middlewares.redirect-app.redirectregex.replacement=http://registry.jhipster-portal/app/$${1}"
+      - "traefik.http.middlewares.redirect-app.redirectregex.permanent=true"
+
+      - "traefik.http.middlewares.redirect-content.redirectregex.regex=^http://registry.jhipster-portal/registry/content/(.*)"
+      - "traefik.http.middlewares.redirect-content.redirectregex.replacement=http://registry.jhipster-portal/content/$${1}"
+      - "traefik.http.middlewares.redirect-content.redirectregex.permanent=true"
+
     networks:
       net-traefik:
       internal-network:
         aliases:
           - registry.jhipster-portal
+
+
+  whoami:
+    image: "containous/whoami"
+    container_name: "simple-service"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whoami.rule=Host(`jhipster-portal`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.whoami.entrypoints=web"
+      - "traefik.http.routers.whoami.priority=1"
+      # - "traefik.http.routers.whoami.middlewares=redirect"
+
+      # Services
+      #- "traefik.http.services.jhipster-registry.loadbalancer.server.port=80"                       # Tell Traefik to use the port 80 to connect to `whoami`
+      #- "traefik.http.services.jhipster-registry.loadbalancer.server.url=http://whoami/api"         # Tell Traefik to use the /api path of container whoami
+
+      # Middlewares
+      - "traefik.http.middlewares.redirect.redirectregex.regex=^http://jhipster-portal/api"
+      - "traefik.http.middlewares.redirect.redirectregex.replacement=http://whoami/api"
+      - "traefik.http.middlewares.redirect.redirectregex.permanent=true"
+
+    networks:
+      net-traefik:

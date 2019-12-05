@@ -3,5 +3,5 @@
 if [  -z "$(docker network ls|grep net-traefik)" ]; then
   docker network create net-traefik 
 fi
-docker-compose -f traefik-jhipster $@
+docker-compose -p traefik-jhipster $@
 
